@@ -1,11 +1,20 @@
 {
-  "name": "okime",
-  "module": "index.ts",
-  "type": "module",
-  "devDependencies": {
-    "bun-types": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  }
+	"name": "okime",
+	"module": "src/index.ts",
+	"type": "module",
+	"author": {
+		"name": "Iyimi",
+		"url": "https://github.com/iyifr",
+		"email": "iyimide@proton.me"
+	},
+	"devDependencies": {
+		"bun-types": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"h3": "^1.11.1",
+		"supertest": "^6.3.4"
+	}
 }
