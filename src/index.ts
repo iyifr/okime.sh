@@ -10,20 +10,20 @@ import {
 	useBase,
 } from 'h3'
 
-import { readdir } from 'node:fs/promises'
-import { join, basename } from 'node:path'
+import router from '../file-router'
+import { join, dirname } from 'path'
+import { readdir, watch } from 'fs/promises'
 
 export class Okime {
 	public app: App
 	public router: Router
+	private routeTree: any
 
 	constructor() {
 		this.app = createApp()
-
 		this.router = createRouter()
-
-		// mount router
 		this.app.use(this.router)
+		this.router.use('/', router)
 	}
 
 	public get(path: string, handler: EventHandler<EventHandlerRequest, void>): void {
@@ -42,16 +42,12 @@ export class Okime {
 		this.router.get(path, defineEventHandler(handler))
 	}
 
-	public route(path: string, base: Okime) {
-		this.app.use(path, useBase(path, base.router.handler))
-	}
-
 	public use(path: string, handler: EventHandler<EventHandlerRequest, void>): void {
 		this.app.use(path, handler)
 	}
 
 	private start(config: { port: number }): void {
-		const server = Bun.serve({
+		Bun.serve({
 			port: config?.port,
 			// @ts-expect-error
 			fetch: toWebHandler(this.app),
@@ -60,15 +56,37 @@ export class Okime {
 	}
 
 	boot(options?: { port: number }) {
-		this.start({ port: options?.port || 4231 })
+		this.start({ port: options?.port || 2004 })
 	}
-}
 
-// Access h3 engine directly for tests
-export function CreateOkime() {
-	const instance = new Okime()
-	return instance.app
+	async loadRoutes() {
+		const s = join(__dirname, `./routes`)
+		const files = await readdir(s, { recursive: true })
+		try {
+			files.forEach(async (file) => {
+				const routeHandler = await import(join(__dirname, `./routes/${file}`))
+				this.get(`/${file.slice(0, -3)}`, routeHandler.default)
+				console.log(file.slice(0, -3))
+			})
+		} catch (e) {}
+	}
+
+	async generateRouteTree() {
+		const dir = join(__dirname, 'routes/hello')
+		const watcher = watch(dir)
+		for await (const event of watcher) {
+			console.log(`Detected ${event.eventType} in ${event.filename}`)
+		}
+	}
 }
 
 const app = new Okime()
 app.boot()
+
+app.get(
+	'/',
+	defineEventHandler((event) => `${event.node.req.method}`)
+)
+
+await app.loadRoutes()
+await app.generateRouteTree()

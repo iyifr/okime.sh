@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test, it } from 'bun:test'
-import { CreateOkime, Okime } from '..'
+import { Okime } from '..'
 import supertest, { SuperTest, Test } from 'supertest'
-import { toNodeListener } from 'h3'
+import { defineEventHandler, toNodeListener } from 'h3'
+import router from '../../file-router'
 
 describe('app', () => {
 	let okime: Okime
@@ -13,18 +14,25 @@ describe('app', () => {
 	})
 
 	it('can return JSON directly', async () => {
-		okime.use('/api', (event) => ({ url: event.path }))
+		okime.use(
+			'/api',
+			defineEventHandler((event) => ({ url: event.path }))
+		)
 		const res = await request.get('/api')
-
 		expect(res.body).toEqual({ url: '/' })
 	})
 
-	it('can group routes', async () => {
-		const apiv1 = new Okime()
-		apiv1.get('/', (event) => ({method: event.node.req.method}))
-		okime.route('/api/v1', apiv1)
+	// it('can group routes', async () => {
+	// 	const apiv1 = new Okime()
+	// 	apiv1.get('/', (event) => ({ method: event.node.req.method }))
+	// 	okime.route('/api/v1', apiv1)
 
-		const res = await request.get('/api/v1')
-		expect(res.body).toEqual({method: 'GET'})
-	})
+	// 	const res = await request.get('/api/v1')
+	// 	expect(res.body).toEqual({ method: 'GET' })
+	// })
+
+	// it('can route based on files', async () => {
+	// 	const res = await request.get('/hello')
+	// 	expect(res.text).toEqual('Hi')
+	// })
 })
