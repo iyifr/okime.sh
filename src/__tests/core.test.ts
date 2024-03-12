@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, test, it } from 'bun:test'
 import { Okime } from '..'
 import supertest, { SuperTest, Test } from 'supertest'
 import { defineEventHandler, toNodeListener } from 'h3'
-import router from '../../file-router'
 
 describe('app', () => {
 	let okime: Okime

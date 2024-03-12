@@ -2,6 +2,7 @@ import {
 	App,
 	EventHandler,
 	EventHandlerRequest,
+	H3Event,
 	Router,
 	createApp,
 	createRouter,
@@ -10,20 +11,19 @@ import {
 	useBase,
 } from 'h3'
 
-import router from '../file-router'
 import { join, dirname } from 'path'
-import { readdir, watch } from 'fs/promises'
+import { readdir, watch, stat } from 'fs/promises'
+import { statSync } from 'fs'
 
 export class Okime {
 	public app: App
 	public router: Router
-	private routeTree: any
+	public routeTree: { file: string; path: string }[] = []
 
 	constructor() {
 		this.app = createApp()
 		this.router = createRouter()
 		this.app.use(this.router)
-		this.router.use('/', router)
 	}
 
 	public get(path: string, handler: EventHandler<EventHandlerRequest, void>): void {
@@ -60,33 +60,64 @@ export class Okime {
 	}
 
 	async loadRoutes() {
-		const s = join(__dirname, `./routes`)
-		const files = await readdir(s, { recursive: true })
 		try {
-			files.forEach(async (file) => {
-				const routeHandler = await import(join(__dirname, `./routes/${file}`))
-				this.get(`/${file.slice(0, -3)}`, routeHandler.default)
-				console.log(file.slice(0, -3))
+			this.routeTree.forEach(async (route) => {
+				const filePath = join(__dirname, route.path)
+				const routePath =
+					route.path === 'routes'
+						? route.path.replace('routes', '/')
+						: route.path.replace('routes', '')
+
+				const routeHandler = await import(join(filePath, route.file))
+				this.get(routePath, routeHandler.default)
 			})
-		} catch (e) {}
+		} catch (e) {
+			console.log(e)
+		}
 	}
 
 	async generateRouteTree() {
-		const dir = join(__dirname, 'routes/hello')
+		const dir = join(__dirname)
 		const watcher = watch(dir)
 		for await (const event of watcher) {
 			console.log(`Detected ${event.eventType} in ${event.filename}`)
 		}
 	}
+
+	public async createRouteTree(dir: string) {
+		const dirPath = join(__dirname, dir)
+		const files = await readdir(dirPath)
+
+		const routeTree: Okime['routeTree'] = []
+
+		for (const file of files) {
+			const filePath = join(dirPath, file)
+			const isDirectory = statSync(filePath).isDirectory()
+
+			if (isDirectory) {
+				const subPath = join(dir, file)
+				const subRouteTree = await this.createRouteTree(subPath)
+				routeTree.push(...subRouteTree)
+			} else {
+				const okimeFiles = ['get.ts', 'post.ts', 'index.ts', 'handler.ts', 'delete.ts', 'put.ts']
+				const isOkimeFile = (string: string) => okimeFiles.includes(string)
+				if (isOkimeFile(file)) {
+					routeTree.push({ file: `/${file}`, path: dir })
+				}
+			}
+		}
+
+		this.routeTree = routeTree
+		return routeTree
+	}
 }
 
 const app = new Okime()
+
 app.boot()
 
-app.get(
-	'/',
-	defineEventHandler((event) => `${event.node.req.method}`)
-)
+await app.createRouteTree('routes')
+console.log(app.routeTree)
 
 await app.loadRoutes()
-await app.generateRouteTree()
+// await app.generateRouteTree()
