@@ -1,20 +1,21 @@
 {
-  "name": "okime",
-  "module": "src/index.ts",
-  "type": "module",
-  "author": {
-    "name": "Iyimi",
-    "url": "https://github.com/iyifr",
-    "email": "iyimide@proton.me"
-  },
-  "devDependencies": {
-    "bun-types": "^1.0.30"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "h3": "^1.11.1",
-    "supertest": "^6.3.4"
-  }
+	"name": "okime",
+	"module": "src/index.ts",
+	"type": "module",
+	"author": {
+		"name": "Iyimi",
+		"url": "https://github.com/iyifr",
+		"email": "iyimide@proton.me"
+	},
+	"devDependencies": {
+		"bun-types": "^1.0.30",
+		"@types/supertest": "^6.0.2"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"h3": "^1.11.1",
+		"supertest": "^6.3.4"
+	}
 }

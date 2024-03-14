@@ -9,6 +9,7 @@ describe('app', () => {
 
 	beforeEach(() => {
 		okime = new Okime()
+		// @ts-ignore
 		request = supertest(toNodeListener(okime.app))
 	})
 
@@ -30,8 +31,8 @@ describe('app', () => {
 	// 	expect(res.body).toEqual({ method: 'GET' })
 	// })
 
-	// it('can route based on files', async () => {
-	// 	const res = await request.get('/hello')
-	// 	expect(res.text).toEqual('Hi')
-	// })
+	it('can route based on files', async () => {
+		const res = await request.get('/')
+		expect(res.text).toEqual('Como estas')
+	})
 })

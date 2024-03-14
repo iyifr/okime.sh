@@ -1,5 +1,5 @@
-// import { H3Event, defineEventHandler } from 'h3'
+import { H3Event, defineEventHandler } from 'h3'
 
-// export default function Root(E: H3Event) {
-// 	return [{}]
-// }
+export default function POST(E: H3Event) {
+	return E.node.req.method?.toLocaleUpperCase()
+}
