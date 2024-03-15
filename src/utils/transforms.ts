@@ -26,3 +26,13 @@ export function extractStringsFromPossibleDynamicRoute(route: string): string[] 
 
 	return matches
 }
+
+
+export function convertSpecialFileNameToHttpMethod(name: string) {
+	if (name === 'handler' || name === 'index') {
+		return 'get'
+	} else return name
+}
+
+export const compareArrays = (a: any[], b: string | any[]) =>
+	a.length === b.length && a.every((element, index) => element === b[index])

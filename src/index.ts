@@ -18,9 +18,14 @@ import { readdir, watch, stat } from 'fs/promises'
 import { statSync } from 'fs'
 import { isOkimeFile } from './utils/okimefiles'
 import { convertRouteFormatWithBrackets, hasVariableSegment } from './utils/denormalizeRoute'
-import { extractStringsFromRoute, transformFileStringToUrl } from './utils/transforms'
+import {
+	compareArrays,
+	convertSpecialFileNameToHttpMethod,
+	extractStringsFromRoute,
+	transformFileStringToUrl,
+} from './utils/transforms'
 
-export class Okime {
+export default class Okime {
 	public app: App
 	public router: Router
 	public routeTree: { file: string; path: string }[] = []
@@ -69,7 +74,7 @@ export class Okime {
 	}
 
 	public async createRouteTree(dir: string) {
-		const dirPath = join(__dirname, dir)
+		const dirPath = join(import.meta.dir, dir)
 		const files = await readdir(dirPath)
 		const routeTree: Okime['routeTree'] = []
 
@@ -91,67 +96,6 @@ export class Okime {
 		return routeTree
 	}
 
-	// OLD ROUTING IMPLEMENTATION
-	async loadRoutes() {
-		try {
-			this.routeTree.forEach(async (route) => {
-				// Find the file and access it's default function
-				const filePath = join(__dirname, route.path)
-				const routeHandler = await import(join(filePath, route.file))
-
-				// Transform the file path into URL string relative to root "routes" folder.
-				const routePath =
-					route.path === 'routes'
-						? route.path.replace('routes', '/')
-						: route.path.replace('routes', '')
-
-				this.handleRoute({ routePath, handler: routeHandler.default, file: route.file })
-			})
-		} catch (e) {
-			console.log(e)
-		}
-	}
-
-	private handleRoute({
-		routePath,
-		handler,
-		file,
-	}: {
-		routePath: string
-		handler: any
-		file: string
-	}) {
-		let finalRoutePath: string
-
-		if (hasVariableSegment(routePath)) {
-			finalRoutePath = convertRouteFormatWithBrackets(routePath)
-		} else finalRoutePath = routePath
-
-		switch (file) {
-			case 'get.ts': {
-				this.router.get(finalRoutePath, defineEventHandler(handler))
-			}
-			case 'post.ts': {
-				this.router.post(finalRoutePath, defineEventHandler(handler))
-			}
-			case 'put.ts': {
-				this.router.put(finalRoutePath, handler)
-			}
-			case 'patch.ts': {
-				this.router.patch(finalRoutePath, handler)
-			}
-			case 'delete.ts': {
-				this.router.delete(finalRoutePath, handler)
-			}
-			case 'handler.ts': {
-				this.router.get(finalRoutePath, defineEventHandler(handler))
-			}
-			case 'index.ts': {
-				this.router.get(finalRoutePath, handler)
-			}
-		}
-	}
-
 	routeManager = (routes: Okime['routeTree']) =>
 		defineEventHandler(async (event: H3Event) => {
 			const { req, res } = event.node
@@ -162,6 +106,7 @@ export class Okime {
 
 			let matches = routes.filter((route) => fileUrlPath(route.path) === routePath)
 
+			// If we cannot find a direct match check for a variable match.
 			if (matches.length === 0) {
 				matches = routes
 					.filter((item) => {
@@ -173,7 +118,6 @@ export class Okime {
 							.filter((item) => item !== '')
 
 						const arr2 = routePath.split('/').filter((item) => item !== '')
-						//.filter((item, index) => index % 2 === 0)
 
 						if (arr1.length > 1 && arr2.length > 1) {
 							const proxy = arr1.filter((item, index) => index % 2 === 0)
@@ -203,8 +147,6 @@ export class Okime {
 					const finalPath = hasVariableSegment(segment)
 						? convertRouteFormatWithBrackets(segment)
 						: segment
-
-					console.log(final.file)
 
 					switch (final.file) {
 						case 'get.ts': {
@@ -238,45 +180,3 @@ export class Okime {
 			}
 		})
 }
-
-const app = new Okime()
-
-await app.boot()
-
-// await app.createRouteTree('routes')
-
-// await app.loadRoutes()
-// await app.generateRouteTree()
-
-// class OkimeBeta extends Okime {
-// 	constructor() {
-// 		super()
-// 		this.loadRoutesBeta()
-// 	}
-
-// 	async loadRoutesBeta() {
-// 		await this.createRouteTree('routes')
-// 		const appRouter = this.routeManager(this.routeTree)
-// 		this.app.use(appRouter)
-// 	}
-
-// 		})
-// }
-
-// const app2 = new OkimeBeta()
-// app2.boot({ port: 3003 })
-
-function convertSpecialFileNameToHttpMethod(name: string) {
-	if (name === 'handler' || name === 'index') {
-		return 'get'
-	} else return name
-}
-
-// const combine = (result: any, nextFun: (arg0: any) => any) => nextFun(result)
-// const pipe =
-// 	(...funs: any[]) =>
-// 	(x: any) =>
-// 		funs.reduce(combine, x)
-
-const compareArrays = (a: any[], b: string | any[]) =>
-	a.length === b.length && a.every((element, index) => element === b[index])

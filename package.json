@@ -2,7 +2,8 @@
 	"name": "okime",
 	"module": "src/index.ts",
 	"type": "module",
-	"main": "src/index.ts",
+	"main": "dist/index.js",
+	"version": "0.0.1",
 	"author": {
 		"name": "Iyi",
 		"url": "https://github.com/iyifr",
