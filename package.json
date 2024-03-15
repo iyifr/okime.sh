@@ -2,8 +2,9 @@
 	"name": "okime",
 	"module": "src/index.ts",
 	"type": "module",
+	"main": "src/index.ts",
 	"author": {
-		"name": "Iyimi",
+		"name": "Iyi",
 		"url": "https://github.com/iyifr",
 		"email": "iyimide@proton.me"
 	},

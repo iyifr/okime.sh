@@ -47,10 +47,10 @@ export class Okime {
 		await this.createRouteTree('routes')
 		// this.loadRoutes()
 
-		// mount router
 		const handler = this.routeManager(this.routeTree)
 		this.app.use(handler)
 
+		// mount the router
 		this.app.use(this.router)
 
 		this.start({ port: options?.port || 2004 })
