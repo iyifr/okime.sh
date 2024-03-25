@@ -10,7 +10,6 @@ import {
 	defineEventHandler,
 	getRequestURL,
 	toWebHandler,
-	useBase,
 } from 'h3'
 
 import { join, dirname } from 'path'
@@ -21,11 +20,10 @@ import { convertRouteFormatWithBrackets, hasVariableSegment } from './utils/deno
 import {
 	compareArrays,
 	convertSpecialFileNameToHttpMethod,
-	extractStringsFromRoute,
 	transformFileStringToUrl,
 } from './utils/transforms'
 
-export default class Okime {
+export class Okime {
 	public app: App
 	public router: Router
 	public routeTree: { file: string; path: string }[] = []
@@ -42,15 +40,14 @@ export default class Okime {
 	private start(config: { port: number }): void {
 		Bun.serve({
 			port: config?.port,
-			// @ts-expect-error
+			//@ts-ignore
 			fetch: toWebHandler(this.app),
 		})
 		console.log(`Server started on port ${config.port}`)
 	}
 
 	async boot(options?: { port: number }) {
-		await this.createRouteTree('routes')
-		// this.loadRoutes()
+		await this.createRouteTree('routes', __dirname)
 
 		const handler = this.routeManager(this.routeTree)
 		this.app.use(handler)
@@ -60,7 +57,7 @@ export default class Okime {
 
 		this.start({ port: options?.port || 2004 })
 
-		await this.generateRouteTree()
+		// await this.generateRouteTree()
 	}
 
 	async generateRouteTree() {
@@ -68,14 +65,17 @@ export default class Okime {
 		const watcher = watch(dir)
 		for await (const event of watcher) {
 			if (event.eventType === 'rename') {
-				await this.createRouteTree('routes')
+				await this.createRouteTree('routes', __dirname)
 			}
 		}
 	}
 
-	public async createRouteTree(dir: string) {
-		const dirPath = join(import.meta.dir, dir)
-		const files = await readdir(dirPath)
+	public async createRouteTree(dir: string, __dirname: string) {
+		const dirPath = join(__dirname, dir)
+		const files = await readdir(dirPath).catch(() => {
+			console.log('No routes directory in root path')
+			return []
+		})
 		const routeTree: Okime['routeTree'] = []
 
 		for (const file of files) {
@@ -84,7 +84,7 @@ export default class Okime {
 
 			if (isDirectory) {
 				const subPath = join(dir, file)
-				const subRouteTree = await this.createRouteTree(subPath)
+				const subRouteTree = await this.createRouteTree(subPath, __dirname)
 				routeTree.push(...subRouteTree)
 			} else {
 				if (isOkimeFile(file) || hasVariableSegment(file)) {
@@ -122,7 +122,8 @@ export default class Okime {
 						if (arr1.length > 1 && arr2.length > 1) {
 							const proxy = arr1.filter((item, index) => index % 2 === 0)
 							const proxy2 = arr2.filter((item, index) => index % 2 === 0)
-							return compareArrays(proxy, proxy2)
+							const isEqual = compareArrays(proxy, proxy2)
+							return isEqual
 						} else if (arr1.length === 1) {
 							return true
 						}
