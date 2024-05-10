@@ -9,18 +9,21 @@ import {
 	createRouter,
 	defineEventHandler,
 	getRequestURL,
-	toWebHandler,
+	toWebHandler
 } from 'h3'
 
 import { join, dirname } from 'path'
 import { readdir, watch, stat } from 'fs/promises'
 import { statSync } from 'fs'
 import { isOkimeFile } from './utils/okimefiles'
-import { convertRouteFormatWithBrackets, hasVariableSegment } from './utils/denormalizeRoute'
+import {
+	convertRouteFormatWithBrackets,
+	hasVariableSegment
+} from './utils/denormalizeRoute'
 import {
 	compareArrays,
 	convertSpecialFileNameToHttpMethod,
-	transformFileStringToUrl,
+	transformFileStringToUrl
 } from './utils/transforms'
 
 export class Okime {
@@ -33,7 +36,10 @@ export class Okime {
 		this.router = createRouter()
 	}
 
-	public use(path: string, handler: EventHandler<EventHandlerRequest, void>): void {
+	public use(
+		path: string,
+		handler: EventHandler<EventHandlerRequest, void>
+	): void {
 		this.app.use(path, handler)
 	}
 
@@ -41,7 +47,7 @@ export class Okime {
 		Bun.serve({
 			port: config?.port,
 			//@ts-ignore
-			fetch: toWebHandler(this.app),
+			fetch: toWebHandler(this.app)
 		})
 		console.log(`Server started on port ${config.port}`)
 	}
@@ -57,7 +63,7 @@ export class Okime {
 
 		this.start({ port: options?.port || 2004 })
 
-		// await this.generateRouteTree()
+		await this.generateRouteTree()
 	}
 
 	async generateRouteTree() {
@@ -84,7 +90,10 @@ export class Okime {
 
 			if (isDirectory) {
 				const subPath = join(dir, file)
-				const subRouteTree = await this.createRouteTree(subPath, __dirname)
+				const subRouteTree = await this.createRouteTree(
+					subPath,
+					__dirname
+				)
 				routeTree.push(...subRouteTree)
 			} else {
 				if (isOkimeFile(file) || hasVariableSegment(file)) {
@@ -96,15 +105,18 @@ export class Okime {
 		return routeTree
 	}
 
-	routeManager = (routes: Okime['routeTree']) =>
+	private routeManager = (routes: Okime['routeTree']) =>
 		defineEventHandler(async (event: H3Event) => {
 			const { req, res } = event.node
 			const url = getRequestURL(event)
 			const routePath = url.pathname
 			const method = req.method?.toLocaleLowerCase()
-			const fileUrlPath = (path: string) => transformFileStringToUrl(path, 'routes')
+			const fileUrlPath = (path: string) =>
+				transformFileStringToUrl(path, 'routes')
 
-			let matches = routes.filter((route) => fileUrlPath(route.path) === routePath)
+			let matches = routes.filter(
+				(route) => fileUrlPath(route.path) === routePath
+			)
 
 			// If we cannot find a direct match check for a variable match.
 			if (matches.length === 0) {
@@ -113,15 +125,23 @@ export class Okime {
 						return hasVariableSegment(item.path)
 					})
 					.filter((item) => {
-						const arr1 = convertRouteFormatWithBrackets(fileUrlPath(item.path))
+						const arr1 = convertRouteFormatWithBrackets(
+							fileUrlPath(item.path)
+						)
 							.split('/')
 							.filter((item) => item !== '')
 
-						const arr2 = routePath.split('/').filter((item) => item !== '')
+						const arr2 = routePath
+							.split('/')
+							.filter((item) => item !== '')
 
 						if (arr1.length > 1 && arr2.length > 1) {
-							const proxy = arr1.filter((item, index) => index % 2 === 0)
-							const proxy2 = arr2.filter((item, index) => index % 2 === 0)
+							const proxy = arr1.filter(
+								(item, index) => index % 2 === 0
+							)
+							const proxy2 = arr2.filter(
+								(item, index) => index % 2 === 0
+							)
 							const isEqual = compareArrays(proxy, proxy2)
 							return isEqual
 						} else if (arr1.length === 1) {
@@ -133,51 +153,71 @@ export class Okime {
 			if (!matches) {
 				throw createError({
 					status: 400,
-					message: 'Route not found',
+					message: 'Route not found'
 				})
 			} else {
-				const final = matches.find(
-					(item) => convertSpecialFileNameToHttpMethod(item.file.slice(0, -3)) === method
-				)
+				// Make sure what we matched is a file that the framework recognizes
+				const final = matches.find((item) => isOkimeFile(item.file))
 
 				if (final) {
 					const filePath = join(__dirname, final.path)
-					const routeHandler = await import(join(filePath, final.file))
+					const routeHandler = await import(
+						join(filePath, final.file)
+					)
+					console.log(routeHandler)
 
-					const segment = transformFileStringToUrl(final.path, 'routes')
+					const segment = transformFileStringToUrl(
+						final.path,
+						'routes'
+					)
 					const finalPath = hasVariableSegment(segment)
 						? convertRouteFormatWithBrackets(segment)
 						: segment
 
+					let __routeHandler
+					const _routeHandler = () => {
+						const method = event.method.toUpperCase()
+						if (routeHandler[method]) {
+							__routeHandler = routeHandler[method]
+						} else {
+							__routeHandler = routeHandler.default
+						}
+					}
+
+					_routeHandler()
+
 					switch (final.file) {
 						case 'get.ts': {
-							this.router.get(finalPath, defineEventHandler(routeHandler.default))
+							this.router.get(finalPath, __routeHandler!)
 						}
 						case 'post.ts': {
-							this.router.post(finalPath, defineEventHandler(routeHandler.default))
+							this.router.post(finalPath, __routeHandler!)
 						}
 						case 'put.ts': {
-							this.router.put(finalPath, defineEventHandler(routeHandler.default))
+							this.router.put(finalPath, __routeHandler!)
 						}
 						case 'patch.ts': {
-							this.router.patch(finalPath, defineEventHandler(routeHandler.default))
+							this.router.patch(finalPath, __routeHandler!)
 						}
 						case 'delete.ts': {
-							this.router.delete(finalPath, defineEventHandler(routeHandler.default))
+							this.router.delete(finalPath, __routeHandler!)
 						}
 						case 'handler.ts': {
-							this.router.use(finalPath, defineEventHandler(routeHandler.default))
+							this.router.use(finalPath, __routeHandler!)
 						}
 						case 'index.ts': {
-							this.router.get(finalPath, defineEventHandler(routeHandler.default))
+							this.router.use(finalPath, __routeHandler!)
 						}
 					}
 				} else {
 					throw createError({
 						statusCode: 405,
-						message: 'Method not allowed',
+						message: 'Method not allowed'
 					})
 				}
 			}
 		})
 }
+
+const app = new Okime()
+app.boot()

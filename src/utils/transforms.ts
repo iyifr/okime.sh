@@ -1,5 +1,7 @@
 export function transformFileStringToUrl(fileString: string, dir: string) {
-	return fileString === dir ? fileString.replace(dir, '/') : fileString.replace(dir, '')
+	return fileString === dir
+		? fileString.replace(dir, '/')
+		: fileString.replace(dir, '')
 }
 
 export function extractStringsFromRoute(route: string): string[] {
@@ -15,7 +17,9 @@ export function extractStringsFromRoute(route: string): string[] {
 	return matches
 }
 
-export function extractStringsFromPossibleDynamicRoute(route: string): string[] {
+export function extractStringsFromPossibleDynamicRoute(
+	route: string
+): string[] {
 	const regex = /\/(\w+)\//
 	const matches = []
 
@@ -27,10 +31,9 @@ export function extractStringsFromPossibleDynamicRoute(route: string): string[] 
 	return matches
 }
 
-
 export function convertSpecialFileNameToHttpMethod(name: string) {
 	if (name === 'handler' || name === 'index') {
-		return 'get'
+		return name
 	} else return name
 }
 

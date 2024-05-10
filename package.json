@@ -1,5 +1,5 @@
 {
-	"name": "okime",
+	"name": "okimeh",
 	"module": "./dist/index.js",
 	"type": "module",
 	"types": "./dist/index.d.ts",
@@ -24,12 +24,19 @@
 	},
 	"scripts": {
 		"build": "tsup src/index.ts --format cjs,esm --dts",
-		"lint": "tsc"
+		"lint": "tsc",
+		"local:build": "rimraf dist && bun build.ts",
+		"release:local": "npm run build && npm run test && npm publish"
 	},
 	"keywords": [
 		"bun",
 		"framework",
 		"typescript",
 		"server"
-	]
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/iyifr/okime"
+	},
+	"homepage": "https://github.com/iyifr/okime"
 }
