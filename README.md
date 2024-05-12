@@ -1,5 +1,4 @@
 # Okime
 
-MVC framework for building rich web applications with the best of the typescript ecosystem.
-
-Powered by the bun runtime
+Bun framework with filesystem based routing.
+The goal is to achieve feature parity with Nitro.js - The universal server toolkit powering Nuxt.js.

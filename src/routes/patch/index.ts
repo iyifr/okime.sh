@@ -12,4 +12,9 @@ const handler = defineEventHandler((e) => {
 export const GET = defineEventHandler((e) => {
 	return 'Hola mi amigos'
 })
+
+export const POST = defineEventHandler((e) => {
+	return 'It seems to work really really well'
+})
+
 export default handler

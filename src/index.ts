@@ -52,26 +52,13 @@ export class Okime {
 		console.log(`Server started on port ${config.port}`)
 	}
 
-	async boot(options?: { port: number }) {
-		await this.createRouteTree('routes', __dirname)
-
-		const handler = this.routeManager(this.routeTree)
-		this.app.use(handler)
-
-		// mount the router
-		this.app.use(this.router)
-
-		this.start({ port: options?.port || 2004 })
-
-		await this.generateRouteTree()
-	}
-
 	async generateRouteTree() {
+		await this.createRouteTree('routes', __dirname)
 		const dir = join(__dirname, 'routes')
 		const watcher = watch(dir)
 		for await (const event of watcher) {
 			if (event.eventType === 'rename') {
-				await this.createRouteTree('routes', __dirname)
+				console.log('Change')
 			}
 		}
 	}
@@ -164,7 +151,6 @@ export class Okime {
 					const routeHandler = await import(
 						join(filePath, final.file)
 					)
-					console.log(routeHandler)
 
 					const segment = transformFileStringToUrl(
 						final.path,
@@ -211,12 +197,26 @@ export class Okime {
 					}
 				} else {
 					throw createError({
-						statusCode: 405,
-						message: 'Method not allowed'
+						statusCode: 500,
+						statusMessage:
+							'Could not handle the request at this time.'
 					})
 				}
 			}
 		})
+
+	async boot(options?: { port: number }) {
+		await this.createRouteTree('routes', __dirname)
+		const handler = this.routeManager(this.routeTree)
+		this.app.use(handler)
+
+		// mount the router
+		this.app.use(this.router)
+
+		this.start({ port: options?.port || 2004 })
+
+		await this.generateRouteTree()
+	}
 }
 
 const app = new Okime()
